@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>✨沫淼淼-洱莉菈｜虚拟主播点歌小窝</title>
+  <title>✨汐咪露｜虚拟主播点歌小窝</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑",system-ui}
     body{background:#f8f5fc;color:#444;padding:0;max-width:100%;margin:0 auto}
@@ -77,6 +77,14 @@
       padding:2px 6px;border-radius:6px;margin-left:8px
     }
     .total-count{text-align:right;color:#999;font-size:14px;margin-bottom:10px}
+    
+    /* 昵称输入框样式 */
+    .nickname-section{
+      background:#fff7fb;padding:12px 16px;border-radius:12px;margin-bottom:16px;
+      display:flex;gap:8px;align-items:center;flex-wrap:wrap
+    }
+    .nickname-section label{color:#e2729b;font-weight:500}
+    .nickname-section input{flex:1;min-width:150px}
     
     /* 点歌人昵称样式 */
     .requester-name{
@@ -152,7 +160,7 @@
       margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #ffe6ef
     }
     .import-input-group{
-      display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap
+      display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;
     }
     .import-tip{
       font-size:12px;color:#999;margin-bottom:12px
@@ -216,7 +224,7 @@
     }
     .view-all-btn:hover{background:#ffb8d4;color:#fff}
     /* 后台管理样式 */
-    .video-admin-section, .password-section, .profile-section, .sync-section{
+    .video-admin-section, .password-section, .profile-section{
       margin-top:24px;padding-top:20px;border-top:1px solid #ffe6ef
     }
     .video-item, .profile-item{
@@ -225,13 +233,6 @@
     }
     .video-item button, .profile-item button{background:#ff7a9c;padding:5px 8px;font-size:12px}
     .logout-btn{background:#ff7a9c;margin-top:16px}
-    .sync-btn{background:#e878a2;margin-top:8px}
-    .sync-status{
-      font-size:12px;color:#999;margin-top:8px;
-      background:#fff7fb;padding:6px 10px;border-radius:8px;
-    }
-    .sync-status.success{color:#389e0d}
-    .sync-status.error{color:#ff4d4f}
     .loading-overlay{
       position:fixed;top:0;left:0;width:100%;height:100%;
       background:#f8f5fc;display:flex;justify-content:center;align-items:center;
@@ -246,33 +247,30 @@
       0%{transform:rotate(0deg)}
       100%{transform:rotate(360deg)}
     }
-    /* 全局登录弹窗 */
-    .login-modal{
-      display:flex !important;
-    }
-    .login-tip{
-      font-size:12px;color:#999;margin-bottom:20px
+    /* 文件上传样式 */
+    .file-input{
+      padding:8px;border:1px solid #ffd1e3;border-radius:12px;background:#fffbfd;
+      color:#555;cursor:pointer;flex:1;
     }
   </style>
 </head>
 <body>
+  <!-- 启动配置弹窗（首次进入弹出：昵称+Token）【需求3新增】 -->
+  <div class="modal-overlay" id="initConfigModal" style="display:flex;">
+    <div class="modal">
+      <h3>🔧 云同步配置</h3>
+      <input type="text" id="initNickname" class="modal-input" placeholder="请填写昵称">
+      <input type="text" id="initToken" class="modal-input" placeholder="请填写 GitHub Token">
+      <div class="modal-buttons">
+        <button onclick="saveInitConfig()">确认配置</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 加载动画 -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
-    <div style="color:#e878a2">正在连接云端...</div>
-  </div>
-
-  <!-- 全局登录弹窗 -->
-  <div class="modal-overlay login-modal" id="loginModal">
-    <div class="modal">
-      <h3>🎀 欢迎来到沫淼淼的点歌小窝</h3>
-      <p class="login-tip">请输入访问Token和你的昵称才能进入</p>
-      <input type="password" id="accessToken" class="modal-input" placeholder="访问Token">
-      <input type="text" id="loginNickname" class="modal-input" placeholder="你的昵称">
-      <div class="modal-buttons">
-        <button onclick="login()">进入点歌台</button>
-      </div>
-    </div>
+    <div style="color:#e878a2">正在加载最新内容...</div>
   </div>
 
   <div class="header-banner" id="headerBanner">
@@ -284,12 +282,21 @@
     </div>
   </div>
 
+  <!-- 【需求2】观众点歌 → 汐咪露小窝 -->
   <div class="tab" id="tabBar">
-    <button class="active" onclick="showTab('viewer')">观众点歌</button>
+    <button class="active" onclick="showTab('viewer')">汐咪露小窝</button>
   </div>
 
   <div id="viewer" class="box">
-    <h3>🔍 搜索主播会唱的歌</h3>
+    <!-- 粉丝昵称输入框 -->
+    <div class="nickname-section">
+      <label>🎀 你的昵称：</label>
+      <input type="text" id="viewerNickname" placeholder="请输入你的昵称才能点歌">
+      <button onclick="saveNickname()">确认</button>
+    </div>
+
+    <!-- 【需求2】搜索主播会唱的歌 → 搜索汐汐会的歌 -->
+    <h3>🔍 搜索汐汐会的歌</h3>
     <div class="filter-bar">
       <select id="languageFilter" onchange="filterSongs()">
         <option value="">全部语言</option>
@@ -323,12 +330,18 @@
   </div>
 
   <div id="admin" class="box" style="display:none">
-    <!-- 个人信息编辑区域 -->
+    <!-- 【需求1】主播云同步配置 → 云同步；原Token输入区整体移除（移到启动弹窗） -->
     <div class="profile-section">
       <h3>🎨 编辑个人信息与头图</h3>
+      <!-- 【需求4】头图：链接 + 本地上传 -->
       <div class="import-input-group">
         <input type="text" id="bannerUrl" placeholder="头图背景链接" oninput="previewProfile()">
+        <input type="file" class="file-input" id="bannerFile" accept="image/*" onchange="uploadBannerImg()">
+      </div>
+      <!-- 【需求4】头像：链接 + 本地上传 -->
+      <div class="import-input-group" style="margin-top:8px">
         <input type="text" id="avatarUrl" placeholder="头像链接" oninput="previewProfile()">
+        <input type="file" class="file-input" id="avatarFile" accept="image/*" onchange="uploadAvatarImg()">
       </div>
       <div class="import-input-group" style="margin-top:8px">
         <input type="text" id="editNickname" placeholder="主播昵称" oninput="previewProfile()">
@@ -340,7 +353,8 @@
       </div>
     </div>
 
-    <h3 style="margin-top:24px">✏️ 添加主播会唱的歌</h3>
+    <!-- 【需求4】添加主播会唱的歌 → 添加会唱的歌 -->
+    <h3 style="margin-top:24px">✏️ 添加会唱的歌</h3>
     <input type="text" id="newSong" placeholder="格式：歌名 - 歌手">
     <button onclick="addSong()">添加</button>
     
@@ -422,30 +436,71 @@
       <h3>🔐 主播后台验证</h3>
       <input type="password" id="passwordInput" class="modal-input" placeholder="请输入后台密码">
       <div class="modal-buttons">
-        <button onclick="verifyAdminPassword()">确认</button>
+        <button onclick="verifyPassword()">确认</button>
         <button class="close-btn" onclick="closePasswordModal()">取消</button>
       </div>
     </div>
   </div>
 
 <script>
-  // ==================== 你的Gist ID已直接写入！ ====================
+  // ==================== 基础配置 ====================
   const GIST_ID = "ce66c32d4d465dd282f5e6fab9b82692";
-  // 自动刷新间隔（毫秒），每5秒自动同步最新点歌队列
-  const AUTO_REFRESH_INTERVAL = 5000;
+  const AUTO_REFRESH_INTERVAL = 3000;
+  const DEFAULT_PASSWORD = "lucky";
+  const LOGIN_EXPIRE_DAYS = 7;
 
-  const DEFAULT_ADMIN_PASSWORD = "lucky";
-  let isAdmin = false;
-  let currentUserNickname = "";
-  let adminToken = "";
+  let isAdminLoggedIn = false;
   let isSongListExpanded = false;
-
-  let adminPassword = localStorage.getItem("adminPassword") || DEFAULT_ADMIN_PASSWORD;
+  let viewerNickname = localStorage.getItem("viewerNickname") || "";
+  let adminPassword = localStorage.getItem("adminPassword") || DEFAULT_PASSWORD;
   let avatarClickCount = 0;
   let avatarClickTimer = null;
   let autoRefreshTimer = null;
+  let adminToken = "";
 
-  // ==================== 默认数据（云端没有数据时显示这个） ====================
+  // ==================== 【需求3】启动弹窗配置保存 ====================
+  function saveInitConfig() {
+    const nick = document.getElementById("initNickname").value.trim();
+    const token = document.getElementById("initToken").value.trim();
+    if(!nick || !token){
+      alert("昵称和Token都不能为空！");
+      return;
+    }
+    // 保存配置到本地
+    localStorage.setItem("siteInitNick", nick);
+    localStorage.setItem("githubToken", token);
+    adminToken = token;
+    // 关闭启动弹窗
+    document.getElementById("initConfigModal").style.display = "none";
+    // 继续加载页面数据
+    loadDataFromCloud();
+  }
+
+  // ==================== 【需求4】本地图片上传转Base64（头像+头图） ====================
+  // 上传头图
+  function uploadBannerImg(){
+    const file = document.getElementById("bannerFile").files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      document.getElementById("bannerUrl").value = e.target.result;
+      previewProfile();
+    }
+    reader.readAsDataURL(file);
+  }
+  // 上传头像
+  function uploadAvatarImg(){
+    const file = document.getElementById("avatarFile").files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e){
+      document.getElementById("avatarUrl").value = e.target.result;
+      previewProfile();
+    }
+    reader.readAsDataURL(file);
+  }
+
+  // ==================== 默认数据 ====================
   const DEFAULT_DATA = {
     profile: {
       banner: "",
@@ -545,126 +600,57 @@
     queue: []
   };
 
-  // 当前使用的数据
   let appData = {...DEFAULT_DATA};
   let profile = appData.profile;
   let songLib = appData.songLib;
   let videos = appData.videos;
   let queue = appData.queue;
-
   let currentRandomSong = "";
   let currentRandomSongName = "";
 
-  // ==================== 全局登录系统 ====================
-  function login() {
-    const token = document.getElementById("accessToken").value.trim();
-    const nickname = document.getElementById("loginNickname").value.trim();
-
-    if (!token) {
-      alert("请输入访问Token！");
-      return;
+  // ==================== 初始化判断：是否已有配置Token ====================
+  function checkInitConfig() {
+    const savedToken = localStorage.getItem("githubToken") || "";
+    if(savedToken){
+      adminToken = savedToken;
+      document.getElementById("initConfigModal").style.display = "none";
+      loadDataFromCloud();
     }
-    if (!nickname) {
+  }
+
+  // ==================== 初始化粉丝昵称 ====================
+  function initNickname() {
+    const nicknameInput = document.getElementById("viewerNickname");
+    if (viewerNickname) {
+      nicknameInput.value = viewerNickname;
+      nicknameInput.disabled = true;
+      document.querySelector(".nickname-section button").textContent = "修改";
+    }
+  }
+
+  function saveNickname() {
+    const nicknameInput = document.getElementById("viewerNickname");
+    const newNickname = nicknameInput.value.trim();
+    if (!newNickname) {
       alert("请输入你的昵称！");
       return;
     }
-
-    // 保存用户昵称（本地存储，每个用户独立）
-    currentUserNickname = nickname;
-    localStorage.setItem("userNickname", nickname);
-
-    // 测试Token是否有效（尝试读取Gist）
-    testTokenAndLogin(token);
+    viewerNickname = newNickname;
+    localStorage.setItem("viewerNickname", viewerNickname);
+    nicknameInput.disabled = true;
+    document.querySelector(".nickname-section button").textContent = "修改";
+    alert(`昵称设置成功：${viewerNickname}`);
   }
 
-  async function testTokenAndLogin(token) {
-    try {
-      const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/vnd.github.v3+json"
-        }
-      });
-
-      if (response.ok) {
-        // Token有效，判断是否有写权限（管理员）
-        adminToken = token;
-        localStorage.setItem("adminToken", token);
-        
-        // 检查是否有写权限
-        const testWrite = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-          method: "PATCH",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Accept": "application/vnd.github.v3+json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            description: "点歌台数据"
-          })
-        });
-
-        if (testWrite.ok) {
-          isAdmin = true;
-          showAdminTab();
-          alert(`欢迎你，主播${currentUserNickname}！已进入管理员模式`);
-        } else {
-          isAdmin = false;
-          alert(`欢迎你，${currentUserNickname}！`);
-        }
-
-        // 隐藏登录弹窗
-        document.getElementById("loginModal").style.display = "none";
-        // 隐藏加载动画
-        document.getElementById("loadingOverlay").style.display = "none";
-        
-        // 加载数据
-        await loadDataFromCloud();
-        // 启动自动刷新
-        startAutoRefresh();
-      } else {
-        alert("访问Token无效，请检查后重试！");
-      }
-    } catch (error) {
-      console.error("登录失败:", error);
-      alert("登录失败，请检查网络连接和Token是否正确！");
-    }
-  }
-
-  // 页面加载时检查是否有保存的Token和昵称
-  async function checkSavedLogin() {
-    const savedToken = localStorage.getItem("adminToken");
-    const savedNickname = localStorage.getItem("userNickname");
-
-    if (savedToken && savedNickname) {
-      document.getElementById("accessToken").value = savedToken;
-      document.getElementById("loginNickname").value = savedNickname;
-      // 自动登录
-      await testTokenAndLogin(savedToken);
-    } else {
-      // 没有保存的登录信息，显示登录弹窗
-      document.getElementById("loadingOverlay").style.display = "none";
-    }
-  }
-
-  // ==================== 核心：全数据云端同步 ====================
+  // ==================== 读取云端数据 ====================
   async function loadDataFromCloud() {
     try {
-      const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-        headers: adminToken ? {
-          "Authorization": `Bearer ${adminToken}`,
-          "Accept": "application/vnd.github.v3+json"
-        } : {}
-      });
-      
+      const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
       if (!response.ok) throw new Error("云端数据加载失败");
-      
       const gistData = await response.json();
       const dataFile = gistData.files["songbox-data.json"];
-      
       if (dataFile && dataFile.content) {
         const cloudData = JSON.parse(dataFile.content);
-        // 合并云端数据，覆盖默认数据
         appData = {...DEFAULT_DATA, ...cloudData};
         profile = appData.profile;
         songLib = appData.songLib;
@@ -673,19 +659,23 @@
       }
     } catch (error) {
       console.error("云端数据加载失败，使用默认数据:", error);
+      appData = {...DEFAULT_DATA};
+      profile = appData.profile;
+      songLib = appData.songLib;
+      videos = appData.videos;
+      queue = appData.queue;
     } finally {
-      // 渲染页面
+      document.getElementById("loadingOverlay").style.display = "none";
+      initNickname();
       renderProfile();
       render();
+      startAutoRefresh();
     }
   }
 
-  // 同步数据到云端（只有管理员能调用）
+  // ==================== 同步数据到云端 ====================
   async function syncToCloud() {
-    if (!isAdmin || !adminToken) {
-      return;
-    }
-    
+    if (!adminToken) return;
     try {
       await fetch(`https://api.github.com/gists/${GIST_ID}`, {
         method: "PATCH",
@@ -707,46 +697,37 @@
     }
   }
 
-  // 自动刷新点歌队列
+  async function autoSync() {
+    if (adminToken) await syncToCloud();
+  }
+
+  // 自动刷新队列
   function startAutoRefresh() {
-    if (autoRefreshTimer) {
-      clearInterval(autoRefreshTimer);
-    }
-    
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
     autoRefreshTimer = setInterval(async () => {
       try {
-        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-          headers: adminToken ? {
-            "Authorization": `Bearer ${adminToken}`,
-            "Accept": "application/vnd.github.v3+json"
-          } : {}
-        });
-        
+        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
         if (response.ok) {
           const gistData = await response.json();
           const dataFile = gistData.files["songbox-data.json"];
-          
           if (dataFile && dataFile.content) {
             const cloudData = JSON.parse(dataFile.content);
-            // 只更新队列和基础数据，不覆盖本地正在编辑的内容
             if (JSON.stringify(queue) !== JSON.stringify(cloudData.queue || [])) {
               queue = cloudData.queue || [];
               appData.queue = queue;
               renderQueue();
             }
-            
             if (JSON.stringify(profile) !== JSON.stringify(cloudData.profile || DEFAULT_DATA.profile)) {
               profile = cloudData.profile || DEFAULT_DATA.profile;
               appData.profile = profile;
               renderProfile();
             }
-            
             if (JSON.stringify(songLib) !== JSON.stringify(cloudData.songLib || DEFAULT_DATA.songLib)) {
               songLib = cloudData.songLib || DEFAULT_DATA.songLib;
               appData.songLib = songLib;
               renderSongList();
+              updateTotalCount();
             }
-            
             if (JSON.stringify(videos) !== JSON.stringify(cloudData.videos || DEFAULT_DATA.videos)) {
               videos = cloudData.videos || DEFAULT_DATA.videos;
               appData.videos = videos;
@@ -760,7 +741,7 @@
     }, AUTO_REFRESH_INTERVAL);
   }
 
-  // ==================== 个人信息编辑与预览 ====================
+  // ==================== 个人信息预览 & 保存 ====================
   function previewProfile() {
     const tempProfile = {
       banner: document.getElementById("bannerUrl").value.trim(),
@@ -769,46 +750,27 @@
       englishName: document.getElementById("editEnglishName").value.trim(),
       bio: document.getElementById("editBio").value.trim()
     };
-    
-    // 实时预览
     if (tempProfile.banner) {
       document.getElementById("headerBanner").style.backgroundImage = `url(${tempProfile.banner})`;
     } else {
       document.getElementById("headerBanner").style.backgroundImage = "none";
       document.getElementById("headerBanner").style.backgroundColor = "#f8f5fc";
     }
-    
-    if (tempProfile.avatar) {
-      document.getElementById("avatar").src = tempProfile.avatar;
-    }
-    
+    if (tempProfile.avatar) document.getElementById("avatar").src = tempProfile.avatar;
     if (tempProfile.nickname) {
       document.getElementById("nickname").textContent = tempProfile.nickname;
       document.title = `✨${tempProfile.nickname}｜虚拟主播点歌小窝`;
     }
-    
-    if (tempProfile.englishName) {
-      document.getElementById("englishName").textContent = tempProfile.englishName;
-    }
-    
-    if (tempProfile.bio) {
-      document.getElementById("bio").textContent = tempProfile.bio;
-    }
+    if (tempProfile.englishName) document.getElementById("englishName").textContent = tempProfile.englishName;
+    if (tempProfile.bio) document.getElementById("bio").textContent = tempProfile.bio;
   }
 
-  // 保存个人信息修改
   async function saveProfile() {
-    if (!isAdmin) {
-      alert("只有主播才能修改个人信息！");
-      return;
-    }
-
     profile.banner = document.getElementById("bannerUrl").value.trim();
     profile.avatar = document.getElementById("avatarUrl").value.trim();
     profile.nickname = document.getElementById("editNickname").value.trim();
     profile.englishName = document.getElementById("editEnglishName").value.trim();
     profile.bio = document.getElementById("editBio").value.trim();
-
     if (!profile.avatar) {
       alert("头像链接不能为空！");
       return;
@@ -817,39 +779,24 @@
       alert("昵称不能为空！");
       return;
     }
-
-    await syncToCloud();
+    await autoSync();
     renderProfile();
     alert("个人信息修改成功！所有人刷新即可看到");
   }
 
-  // 渲染个人信息
   function renderProfile() {
-    // 头图
     if (profile.banner) {
       document.getElementById("headerBanner").style.backgroundImage = `url(${profile.banner})`;
     } else {
       document.getElementById("headerBanner").style.backgroundImage = "none";
       document.getElementById("headerBanner").style.backgroundColor = "#f8f5fc";
     }
-    
-    // 头像
     document.getElementById("avatar").src = profile.avatar;
-    
-    // 昵称
     document.getElementById("nickname").textContent = profile.nickname;
-    
-    // 英文名
     document.getElementById("englishName").textContent = profile.englishName;
-    
-    // 个人描述
     document.getElementById("bio").textContent = profile.bio;
-    
-    // 更新页面标题
     document.title = `✨${profile.nickname}｜虚拟主播点歌小窝`;
-    
-    // 填充后台编辑框（只有管理员能看到）
-    if (isAdmin) {
+    if (isAdminLoggedIn) {
       document.getElementById("bannerUrl").value = profile.banner;
       document.getElementById("avatarUrl").value = profile.avatar;
       document.getElementById("editNickname").value = profile.nickname;
@@ -858,7 +805,15 @@
     }
   }
 
-  // ==================== 权限系统核心函数 ====================
+  // ==================== 后台权限系统 ====================
+  function checkLoginStatus() {
+    const loginData = JSON.parse(localStorage.getItem("adminLogin"));
+    if (loginData && loginData.expireTime > Date.now()) {
+      isAdminLoggedIn = true;
+      showAdminTab();
+    }
+  }
+
   function showAdminTab() {
     const tabBar = document.getElementById("tabBar");
     if (tabBar.children.length < 2) {
@@ -870,15 +825,10 @@
   }
 
   document.getElementById("avatar").addEventListener("click", function() {
-    if (!isAdmin) return;
-    
+    if (isAdminLoggedIn) return;
     avatarClickCount++;
     clearTimeout(avatarClickTimer);
-    
-    avatarClickTimer = setTimeout(() => {
-      avatarClickCount = 0;
-    }, 3000);
-    
+    avatarClickTimer = setTimeout(() => { avatarClickCount = 0; }, 3000);
     if (avatarClickCount === 5) {
       avatarClickCount = 0;
       document.getElementById("passwordModal").style.display = "flex";
@@ -886,11 +836,15 @@
     }
   });
 
-  function verifyAdminPassword() {
+  function verifyPassword() {
     const inputPassword = document.getElementById("passwordInput").value.trim();
     if (inputPassword === adminPassword) {
+      isAdminLoggedIn = true;
+      const expireTime = Date.now() + LOGIN_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
+      localStorage.setItem("adminLogin", JSON.stringify({expireTime: expireTime}));
+      showAdminTab();
       closePasswordModal();
-      alert("验证成功！");
+      alert("登录成功！");
     } else {
       alert("密码错误，请重试！");
       document.getElementById("passwordInput").value = "";
@@ -904,75 +858,48 @@
   }
 
   function changePassword() {
-    if (!isAdmin) {
-      alert("只有主播才能修改密码！");
-      return;
-    }
-
     const oldPwd = document.getElementById("oldPassword").value.trim();
     const newPwd = document.getElementById("newPassword").value.trim();
     const confirmPwd = document.getElementById("confirmPassword").value.trim();
-
     if (!oldPwd || !newPwd || !confirmPwd) {
       alert("请填写所有密码字段！");
       return;
     }
-
     if (oldPwd !== adminPassword) {
       alert("当前密码错误！");
       return;
     }
-
     if (newPwd !== confirmPwd) {
       alert("两次输入的新密码不一致！");
       return;
     }
-
     if (newPwd.length < 4) {
       alert("密码长度至少4位！");
       return;
     }
-
     adminPassword = newPwd;
     localStorage.setItem("adminPassword", newPwd);
-    
     document.getElementById("oldPassword").value = "";
     document.getElementById("newPassword").value = "";
     document.getElementById("confirmPassword").value = "";
-    
-    alert("密码修改成功！");
+    alert("密码修改成功！下次登录请使用新密码");
   }
 
   function logout() {
     if (!confirm("确定要退出登录吗？")) return;
-    
-    isAdmin = false;
-    adminToken = "";
-    currentUserNickname = "";
-    localStorage.removeItem("adminToken");
-    localStorage.removeItem("userNickname");
-    
-    if (autoRefreshTimer) {
-      clearInterval(autoRefreshTimer);
-    }
-    
+    isAdminLoggedIn = false;
+    localStorage.removeItem("adminLogin");
     const tabBar = document.getElementById("tabBar");
-    if (tabBar.children.length > 1) {
-      tabBar.removeChild(tabBar.lastChild);
-    }
-    
+    if (tabBar.children.length > 1) tabBar.removeChild(tabBar.lastChild);
     showTab('viewer');
-    document.getElementById("loginModal").style.display = "flex";
     alert("已退出登录");
   }
 
-  // ==================== 歌曲列表展开/收起切换 ====================
+  // ==================== 歌曲列表展开/收起 ====================
   function toggleSongList() {
     const container = document.getElementById("songListContainer");
     const btn = document.getElementById("toggleListBtn");
-    
     isSongListExpanded = !isSongListExpanded;
-    
     if (isSongListExpanded) {
       container.classList.add("expanded");
       btn.textContent = "收起列表";
@@ -983,24 +910,25 @@
     }
   }
 
-  // 检查是否需要显示切换按钮
   function checkToggleButton() {
     const songCount = document.getElementById("songList").children.length;
     const btn = document.getElementById("toggleListBtn");
     const container = document.getElementById("songListContainer");
-    
     if (songCount <= 5) {
       btn.style.display = "none";
       container.classList.add("expanded");
     } else {
       btn.style.display = "block";
-      if (!isSongListExpanded) {
-        container.classList.remove("expanded");
-      }
+      if (!isSongListExpanded) container.classList.remove("expanded");
     }
   }
 
-  // ==================== 核心功能函数 ====================
+  // ==================== 通用渲染 & 标签页 ====================
+  function save() {
+    autoSync();
+    updateTotalCount();
+  }
+
   function updateTotalCount() {
     document.getElementById("totalSongs").textContent = songLib.length;
   }
@@ -1058,14 +986,13 @@
         `;
         ql.appendChild(d);
       })
-      // 只有管理员能看到清空按钮
-      clearBtn.style.display = isAdmin ? "block" : "none";
+      clearBtn.style.display = isAdminLoggedIn ? "block" : "none";
     }
   }
 
   function renderAdminList() {
     let al=document.getElementById("adminList");al.innerHTML="";
-    if (isAdmin) {
+    if (isAdminLoggedIn) {
       songLib.forEach((s,i)=>{
         let d=document.createElement("div");d.className="song-item";
         d.innerHTML=`${s.songName} - ${s.singer}<button onclick="delSong(${i})">删除</button>`;
@@ -1076,7 +1003,7 @@
 
   function renderVideoAdminList() {
     let val=document.getElementById("videoAdminList");val.innerHTML="";
-    if (isAdmin) {
+    if (isAdminLoggedIn) {
       videos.forEach((v,i)=>{
         let d=document.createElement("div");d.className="video-item";
         d.innerHTML=`${v.title}<button onclick="delVideo(${i})">删除</button>`;
@@ -1118,14 +1045,12 @@
     let language=document.getElementById("languageFilter").value;
     let type=document.getElementById("typeFilter").value;
     let sl=document.getElementById("songList");sl.innerHTML="";
-    
     let result = songLib.filter(x=>{
       let matchSearch = x.songName.toLowerCase().includes(k) || x.singer.toLowerCase().includes(k);
       let matchLanguage = !language || x.language === language;
       let matchType = !type || x.type === type;
       return matchSearch && matchLanguage && matchType;
     });
-    
     if(result.length===0){
       sl.innerHTML='<div class="empty">没有找到这首歌哦</div>';
     }else{
@@ -1142,16 +1067,11 @@
         sl.appendChild(d);
       })
     }
-
     checkToggleButton();
   }
 
+  // ==================== 歌曲操作 ====================
   async function addSong() {
-    if (!isAdmin) {
-      alert("只有主播才能添加歌曲！");
-      return;
-    }
-
     let v=document.getElementById("newSong").value.trim();
     if(!v){
       alert("请输入歌曲信息！");
@@ -1168,49 +1088,46 @@
       type: "",
       language: "中文"
     });
-    await syncToCloud();
+    save();
     render();
     document.getElementById("newSong").value="";
-    alert("歌曲添加成功！所有人刷新即可看到");
+    alert("歌曲添加成功！已同步到云端");
   }
 
   async function delSong(i) {
-    if (!isAdmin) {
-      alert("只有主播才能删除歌曲！");
-      return;
-    }
-
     if(!confirm("确定要删除这首歌曲吗？")) return;
     songLib.splice(i,1);
-    await syncToCloud();
+    save();
     render();
-    alert("歌曲删除成功！所有人刷新即可看到");
+    alert("歌曲删除成功！已同步到云端");
   }
 
-  // 点歌功能（所有人都能使用）
+  // 【需求3】点歌：无Token禁止操作
   async function addQueue(i) {
+    if (!adminToken) {
+      alert("请先完成云同步配置，才能正常点歌！");
+      return;
+    }
+    if (!viewerNickname) {
+      alert("请先输入你的昵称才能点歌！");
+      document.getElementById("viewerNickname").focus();
+      return;
+    }
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     const songFull = `${songLib[i].songName} - ${songLib[i].singer}`;
     queue.push({
-      requester: currentUserNickname,
+      requester: viewerNickname,
       song: songFull,
       time: timeStr
     });
     appData.queue = queue;
-    
-    // 同步到云端
     await syncToCloud();
     render();
     alert(`点歌成功：${songFull}`);
   }
 
   async function clearQueue() {
-    if (!isAdmin) {
-      alert("只有主播才能清空队列！");
-      return;
-    }
-
     if(!confirm("确定要清空所有点歌吗？")) return;
     queue = [];
     appData.queue = queue;
@@ -1218,8 +1135,17 @@
     render();
   }
 
-  // 随机点歌功能（所有人都能使用）
+  // 【需求3】随机点歌：无Token禁止操作
   async function randomSong() {
+    if (!adminToken) {
+      alert("请先完成云同步配置，才能正常点歌！");
+      return;
+    }
+    if (!viewerNickname) {
+      alert("请先输入你的昵称才能点歌！");
+      document.getElementById("viewerNickname").focus();
+      return;
+    }
     if(songLib.length===0){
       alert("曲库为空，无法随机点歌！");
       return;
@@ -1228,20 +1154,16 @@
     const randomSongObj = songLib[randomIndex];
     currentRandomSong = `${randomSongObj.songName} - ${randomSongObj.singer}`;
     currentRandomSongName = randomSongObj.songName;
-    
-    document.getElementById("randomSongResult").textContent = `已为${currentUserNickname}随机到：${currentRandomSong}`;
+    document.getElementById("randomSongResult").textContent = `已为${viewerNickname}随机到：${currentRandomSong}`;
     document.getElementById("randomModal").style.display = "flex";
-    
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     queue.push({
-      requester: currentUserNickname,
+      requester: viewerNickname,
       song: currentRandomSong,
       time: timeStr
     });
     appData.queue = queue;
-    
-    // 同步到云端
     await syncToCloud();
     render();
   }
@@ -1265,31 +1187,16 @@
   }
 
   document.getElementById("randomModal").addEventListener("click", function(e) {
-    if(e.target === this){
-      closeModal();
-    }
+    if(e.target === this) closeModal();
   });
-
   document.getElementById("passwordModal").addEventListener("click", function(e) {
-    if(e.target === this){
-      closePasswordModal();
-    }
+    if(e.target === this) closePasswordModal();
   });
-
   document.getElementById("passwordInput").addEventListener("keydown", function(e) {
-    if(e.key === "Enter"){
-      verifyAdminPassword();
-    }
+    if(e.key === "Enter") verifyPassword();
   });
 
-  // 登录弹窗回车登录
-  document.getElementById("loginNickname").addEventListener("keydown", function(e) {
-    if(e.key === "Enter"){
-      login();
-    }
-  });
-
-  // ==================== 歌单导入功能 ====================
+  // ==================== 歌单导入 ====================
   function parsePlaylistUrl(url) {
     if (url.includes('music.163.com')) {
       const idMatch = url.match(/playlist\?id=(\d+)/) || url.match(/playlist\/(\d+)/);
@@ -1307,60 +1214,42 @@
   }
 
   async function importPlaylist() {
-    if (!isAdmin) {
-      alert("只有主播才能导入歌单！");
-      return;
-    }
-
     const urlInput = document.getElementById('playlistUrl');
     const importBtn = document.getElementById('importBtn');
     const importResult = document.getElementById('importResult');
     const url = urlInput.value.trim();
-
     if (!url) {
       showImportResult('请输入歌单分享链接', 'error');
       return;
     }
-
     const playlistInfo = parsePlaylistUrl(url);
     if (!playlistInfo) {
       showImportResult('不支持的链接格式，请检查是否为歌单分享链接', 'error');
       return;
     }
-
     importBtn.disabled = true;
     importBtn.textContent = '导入中...';
     showImportResult('正在解析歌单，请稍候...', 'loading');
-
     try {
       const response = await fetch(
         `https://api.injahow.cn/meting/?type=playlist&id=${playlistInfo.id}&server=${playlistInfo.server}`
       );
-
       if (!response.ok) throw new Error('网络请求失败，请检查网络连接');
-      
       const songs = await response.json();
       if (!songs || songs.length === 0) {
         showImportResult('歌单为空或解析失败，请检查链接是否正确', 'error');
         return;
       }
-
       let addedCount = 0;
       let existedCount = 0;
-
       for (const song of songs) {
         const songName = song.name.trim();
         const singer = song.artist.map(artist => artist.name.trim()).join('、');
-        
-        const isExist = songLib.some(s => 
-          s.songName === songName && s.singer === singer
-        );
-
+        const isExist = songLib.some(s => s.songName === songName && s.singer === singer);
         if (isExist) {
           existedCount++;
           continue;
         }
-
         songLib.push({
           songName: songName,
           singer: singer,
@@ -1369,16 +1258,13 @@
         });
         addedCount++;
       }
-
-      await syncToCloud();
+      save();
       render();
-
       showImportResult(
         `导入成功！共解析到 ${songs.length} 首歌曲，新增 ${addedCount} 首，已存在 ${existedCount} 首`,
         'success'
       );
       urlInput.value = '';
-
     } catch (error) {
       console.error('歌单导入失败:', error);
       showImportResult(`导入失败：${error.message}，请稍后重试`, 'error');
@@ -1392,18 +1278,12 @@
     const resultEl = document.getElementById('importResult');
     resultEl.style.display = 'block';
     resultEl.textContent = message;
-    
     resultEl.classList.remove('import-success','import-error','import-loading');
     resultEl.classList.add(`import-${type}`);
   }
 
-  // ==================== 视频管理功能 ====================
+  // ==================== 视频管理 ====================
   async function addVideo() {
-    if (!isAdmin) {
-      alert("只有主播才能添加视频！");
-      return;
-    }
-
     const cover = document.getElementById('videoCover').value.trim();
     const bv = document.getElementById('videoBv').value.trim();
     const title = document.getElementById('videoTitle').value.trim();
@@ -1411,55 +1291,12 @@
     const views = document.getElementById('videoViews').value.trim();
     const date = document.getElementById('videoDate').value.trim();
     const tag = document.getElementById('videoTag').value.trim();
-
     if(!cover || !bv || !title || !duration){
       alert("请填写封面、BV号、标题和时长！");
       return;
     }
-
     videos.unshift({
       cover: cover,
       bv: bv,
       title: title,
-      duration: duration,
-      views: views || "0+",
-      date: date || new Date().toLocaleDateString().replace(/\//g, "年") + "月",
-      tag: tag || "其他"
-    });
-
-    await syncToCloud();
-    render();
-
-    document.getElementById('videoCover').value = "";
-    document.getElementById('videoBv').value = "";
-    document.getElementById('videoTitle').value = "";
-    document.getElementById('videoDuration').value = "";
-    document.getElementById('videoViews').value = "";
-    document.getElementById('videoDate').value = "";
-    document.getElementById('videoTag').value = "";
-
-    alert("视频添加成功！所有人刷新即可看到");
-  }
-
-  async function delVideo(i) {
-    if (!isAdmin) {
-      alert("只有主播才能删除视频！");
-      return;
-    }
-
-    if(!confirm("确定要删除这个视频吗？")) return;
-    videos.splice(i,1);
-    await syncToCloud();
-    render();
-    alert("视频删除成功！所有人刷新即可看到");
-  }
-
-  // ==================== 初始化 ====================
-  // 页面加载时检查是否有保存的登录信息
-  checkSavedLogin();
-
-  // 替换为你的B站UID
-  document.querySelector('.view-all-btn').href = "https://space.bilibili.com/你的B站UID";
-</script>
-</body>
-</html>
+      duration:
