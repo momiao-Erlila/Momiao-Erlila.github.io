@@ -195,11 +195,18 @@
     </div>
 
     <div class="video-admin-section">
-      <h3>🎬 管理视频（粘贴链接自动解析）</h3>
+      <h3>🎬 管理视频（两种解析方式）</h3>
+      <!-- 方式1：自动解析链接 -->
       <div class="import-input-group">
-        <input type="text" id="videoLink" placeholder="粘贴B站视频链接(https://www.bilibili.com/video/BV...)">
-        <button onclick="parseBilibiliVideo()">自动解析视频信息</button>
+        <input type="text" id="videoLink" placeholder="粘贴B站视频链接">
+        <button onclick="parseBilibiliVideo()">自动解析链接</button>
       </div>
+      <!-- 方式2：手动输入BV号解析（新增） -->
+      <div class="import-input-group" style="margin-top:8px">
+        <input type="text" id="manualBv" placeholder="手动输入BV号（如 BV12A87efESh）">
+        <button onclick="parseByBv()">根据BV号解析</button>
+      </div>
+
       <div class="import-input-group" style="margin-top:8px">
         <input type="text" id="videoCover" class="auto-fill-input" placeholder="封面（自动读取）" readonly>
         <input type="text" id="videoBv" class="auto-fill-input" placeholder="BV号（自动读取）" readonly>
@@ -790,26 +797,40 @@
     d.className = "import-result import-"+type;
   }
 
-  // ==================== B站视频自动解析 + 实时播放量（修复跨域+兼容分享链接） ====================
+  // ==================== B站视频解析 双模式：链接解析 + 手动BV解析 ====================
+  // 模式1：自动解析链接（兼容带参数分享链接）
   async function parseBilibiliVideo(){
     let link = document.getElementById("videoLink").value.trim();
-    // 自动提取BV号，忽略链接后缀参数
     let bvMatch = link.match(/BV([A-Za-z0-9]+)/);
     if(!bvMatch){
-      alert("未识别到有效的BV号，请检查链接格式！");
+      alert("未识别到BV号，请改用【手动输入BV号】方式！");
       return;
     }
     let bv = bvMatch[0];
+    await fetchVideoData(bv);
+  }
+
+  // 模式2：手动输入BV号解析（新增核心函数）
+  async function parseByBv(){
+    let bv = document.getElementById("manualBv").value.trim();
+    if(!bv || !/^BV[A-Za-z0-9]+$/.test(bv)){
+      alert("请输入正确格式的BV号（例：BV12A87efESh）");
+      return;
+    }
+    await fetchVideoData(bv);
+  }
+
+  // 公共请求接口（复用逻辑）
+  async function fetchVideoData(bv){
     try{
-      // 跨域代理解决浏览器拦截
       let res = await fetch(`https://api.allorigins.win/raw?url=https://api.bilibili.com/x/web-interface/view?bvid=${bv}`);
       let data = await res.json();
       if(data.code !== 0){
-        alert("视频解析失败！错误：" + data.message);
+        alert("解析失败！错误：" + data.message);
         return;
       }
       let info = data.data;
-      // 自动填充所有信息
+      // 自动填充所有字段
       document.getElementById("videoBv").value = bv;
       document.getElementById("videoCover").value = info.pic + "@640w_400h.jpg";
       document.getElementById("videoTitle").value = info.title;
@@ -819,9 +840,10 @@
       alert("视频信息解析成功！");
     }catch(e){
       console.error("解析错误:", e);
-      alert("解析失败，请检查网络或链接是否有效！");
+      alert("网络请求失败，请稍后再试");
     }
   }
+
   // 秒数转 分:秒
   function formatDuration(seconds){
     let m = Math.floor(seconds/60).toString().padStart(2,'0');
@@ -850,6 +872,7 @@
     }catch(e){}
     return "获取中";
   }
+
   async function addVideo(){
     let cover = document.getElementById("videoCover").value.trim();
     let bv = document.getElementById("videoBv").value.trim();
@@ -864,8 +887,9 @@
     };
     videos.unshift(v);
     await afterDataOperate(); render();
-    // 清空输入框
+    // 清空所有输入框
     document.getElementById("videoLink").value="";
+    document.getElementById("manualBv").value="";
     document.getElementById("videoCover").value="";
     document.getElementById("videoBv").value="";
     document.getElementById("videoTitle").value="";
