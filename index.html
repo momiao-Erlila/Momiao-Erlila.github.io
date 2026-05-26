@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>✨ 虚拟主播点歌小窝</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:"微软雅黑",system-ui}
+    body{background:#fff7fb;color:#444;padding:24px;max-width:900px;margin:0 auto}
+    .header{text-align:center;margin:40px 0 30px}
+    .avatar{width:130px;height:130px;border-radius:50%;object-fit:cover;margin:0 auto 16px;border:4px solid #ffcce0}
+    .name{font-size:28px;font-weight:bold;color:#e878a2;margin-bottom:8px}
+    .desc{color:#999;font-size:15px}
+    .tab{display:flex;gap:12px;margin-bottom:24px;justify-content:center}
+    .tab button{
+      padding:10px 20px;border:none;border-radius:99px;
+      background:#ffe6ef;color:#d86b92;font-size:14px;cursor:pointer;
+      transition:0.2s
+    }
+    .tab button.active{background:#ffb8d4;color:#fff}
+    .box{
+      background:#fff;border-radius:18px;padding:22px;margin-bottom:22px;
+      box-shadow:0 2px 10px #ffd6e780
+    }
+    .box h3{color:#e2729b;margin-bottom:14px;font-size:18px}
+    input{
+      width:75%;padding:11px 14px;border:1px solid #ffd1e3;border-radius:12px;
+      background:#fffbfd;color:#555;margin-right:8px
+    }
+    button{
+      padding:10px 16px;border:none;border-radius:12px;
+      background:#ffb8d4;color:#fff;cursor:pointer
+    }
+    .song-item{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px 12px;border-bottom:1px solid #ffe6ef;font-size:15px
+    }
+    .song-item button{background:#ff99b8;padding:6px 10px;font-size:13px;border-radius:10px}
+    .video-box{margin-top:10px}
+    iframe{width:100%;height:360px;border-radius:14px;border:none}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img class="avatar" src="https://picsum.photos/id/64/200/200">
+    <div class="name">主播昵称</div>
+    <div class="desc">🎤 直播唱歌 · 可爱点歌台 · 投稿作品</div>
+  </div>
+
+  <div class="tab">
+    <button class="active" onclick="showTab('viewer')">观众点歌</button>
+    <button onclick="showTab('admin')">主播后台｜编辑会唱歌</button>
+  </div>
+
+  <!-- 观众端：搜索+点歌+队列 -->
+  <div id="viewer" class="box">
+    <h3>🔍 搜索主播会唱的歌</h3>
+    <input type="text" id="search" placeholder="输入歌名/歌手搜索～">
+    <button onclick="searchSong()">搜索</button>
+    <div id="songList" style="margin-top:12px"></div>
+
+    <h3 style="margin-top:24px">🎀 已点歌队列</h3>
+    <div id="queueList"></div>
+  </div>
+
+  <!-- 主播后台：添加删除会唱歌曲 -->
+  <div id="admin" class="box" style="display:none">
+    <h3>✏️ 添加主播会唱的歌</h3>
+    <input type="text" id="newSong" placeholder="格式：歌名 - 歌手">
+    <button onclick="addSong()">添加</button>
+
+    <h3 style="margin-top:24px">📂 可唱曲目库（可删除）</h3>
+    <div id="adminList"></div>
+  </div>
+
+  <!-- 投稿视频区域 -->
+  <div class="box video-box">
+    <h3>🎬 主播投稿视频</h3>
+    <iframe src="https://player.bilibili.com/player.html?aid=BV号" allowfullscreen></iframe>
+  </div>
+
+<script>
+  let songLib = JSON.parse(localStorage.getItem("songLib")) || [
+    "小幸运 - 田馥甄",
+    "花海 - 周杰伦",
+    "恋爱告急 - 鞠婧祎"
+  ];
+  let queue = JSON.parse(localStorage.getItem("queue")) || [];
+
+  function save(){
+    localStorage.setItem("songLib",JSON.stringify(songLib));
+    localStorage.setItem("queue",JSON.stringify(queue));
+  }
+
+  function showTab(t){
+    document.getElementById("viewer").style.display = t==="viewer"?"block":"none";
+    document.getElementById("admin").style.display = t==="admin"?"block":"none";
+    render();
+  }
+
+  function render(){
+    // 观众歌曲列表
+    let sl = document.getElementById("songList");
+    sl.innerHTML = "";
+    songLib.forEach((s,i)=>{
+      let d = document.createElement("div");
+      d.className="song-item";
+      d.innerHTML = `${s}<button onclick="addQueue(${i})">点歌✨</button>`;
+      sl.appendChild(d);
+    })
+    // 点歌队列
+    let ql = document.getElementById("queueList");
+    ql.innerHTML = "";
+    queue.forEach(s=>{
+      let d = document.createElement("div");
+      d.className="song-item";
+      d.textContent = s;
+      ql.appendChild(d);
+    })
+    // 主播后台列表
+    let al = document.getElementById("adminList");
+    al.innerHTML = "";
+    songLib.forEach((s,i)=>{
+      let d = document.createElement("div");
+      d.className="song-item";
+      d.innerHTML = `${s}<button onclick="delSong(${i})">删除</button>`;
+      al.appendChild(d);
+    })
+  }
+
+  function searchSong(){
+    let k = document.getElementById("search").value.toLowerCase();
+    let sl = document.getElementById("songList");
+    sl.innerHTML = "";
+    songLib.filter(x=>x.toLowerCase().includes(k)).forEach(s=>{
+      let d = document.createElement("div");
+      d.className="song-item";
+      d.innerHTML = `${s}<button onclick="addQueue(${songLib.indexOf(s)})">点歌✨</button>`;
+      sl.appendChild(d);
+    })
+  }
+
+  function addSong(){
+    let v = document.getElementById("newSong").value.trim();
+    if(v){ songLib.push(v); save(); render(); document.getElementById("newSong").value="" }
+  }
+
+  function delSong(i){
+    songLib.splice(i,1); save(); render();
+  }
+
+  function addQueue(i){
+    queue.push(songLib[i]); save(); render();
+  }
+
+  render();
+</script>
+</body>
+</html>
