@@ -78,6 +78,20 @@
     }
     .total-count{text-align:right;color:#999;font-size:14px;margin-bottom:10px}
     
+    /* 昵称输入框样式 */
+    .nickname-section{
+      background:#fff7fb;padding:12px 16px;border-radius:12px;margin-bottom:16px;
+      display:flex;gap:8px;align-items:center;flex-wrap:wrap
+    }
+    .nickname-section label{color:#e2729b;font-weight:500}
+    .nickname-section input{flex:1;min-width:150px}
+    .nickname-section button{background:#e878a2}
+    
+    /* 点歌人昵称样式 */
+    .requester-name{
+      color:#e878a2;font-weight:500;margin-right:8px
+    }
+    
     /* 歌曲列表+固定渐变蒙版 */
     .song-list-wrapper{
       position:relative;
@@ -264,6 +278,13 @@
   </div>
 
   <div id="viewer" class="box">
+    <!-- 粉丝昵称输入框 -->
+    <div class="nickname-section">
+      <label>🎀 你的昵称：</label>
+      <input type="text" id="viewerNickname" placeholder="请输入你的昵称才能点歌">
+      <button onclick="saveNickname()">确认</button>
+    </div>
+
     <h3>🔍 搜索主播会唱的歌</h3>
     <div class="filter-bar">
       <select id="languageFilter" onchange="filterSongs()">
@@ -298,7 +319,7 @@
   </div>
 
   <div id="admin" class="box" style="display:none">
-    <!-- 云同步配置区域（只有主播需要配置） -->
+    <!-- 主播云同步配置（只有你能看到） -->
     <div class="sync-section">
       <h3>☁️ 主播云同步配置（仅你需要填写）</h3>
       <div class="import-input-group">
@@ -417,14 +438,14 @@
   </div>
 
 <script>
-  // ==================== 【你只需要在这里填你的Gist ID！】 ====================
-  // 把你创建的Gist的ID填在这里，所有人都会自动从这里读取最新内容
-  const GIST_ID = "ce66c32d4d465dd282f5e6fab9b82692"; // 例如："abc123def4567890abcdef"
+  // ==================== 你的Gist ID已直接写入！ ====================
+  const GIST_ID = "ce66c32d4d465dd282f5e6fab9b82692";
 
   const DEFAULT_PASSWORD = "lucky";
   const LOGIN_EXPIRE_DAYS = 7;
   let isAdminLoggedIn = false;
   let isSongListExpanded = false;
+  let viewerNickname = localStorage.getItem("viewerNickname") || "";
 
   let adminPassword = localStorage.getItem("adminPassword") || DEFAULT_PASSWORD;
   let avatarClickCount = 0;
@@ -542,10 +563,37 @@
   let currentRandomSong = "";
   let currentRandomSongName = "";
 
+  // ==================== 初始化粉丝昵称 ====================
+  function initNickname() {
+    const nicknameInput = document.getElementById("viewerNickname");
+    if (viewerNickname) {
+      nicknameInput.value = viewerNickname;
+      nicknameInput.disabled = true;
+      document.querySelector(".nickname-section button").textContent = "修改";
+    }
+  }
+
+  // 保存粉丝昵称
+  function saveNickname() {
+    const nicknameInput = document.getElementById("viewerNickname");
+    const newNickname = nicknameInput.value.trim();
+    
+    if (!newNickname) {
+      alert("请输入你的昵称！");
+      return;
+    }
+    
+    viewerNickname = newNickname;
+    localStorage.setItem("viewerNickname", viewerNickname);
+    nicknameInput.disabled = true;
+    document.querySelector(".nickname-section button").textContent = "修改";
+    alert(`昵称设置成功：${viewerNickname}`);
+  }
+
   // ==================== 核心：所有人自动从云端读取最新数据 ====================
   async function loadDataFromCloud() {
     try {
-      // 不需要Token，任何人都可以读取公开/secret的Gist内容（只要知道ID）
+      // 不需要Token，任何人都可以读取
       const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
       
       if (!response.ok) throw new Error("云端数据加载失败");
@@ -571,6 +619,8 @@
     } finally {
       // 隐藏加载动画
       document.getElementById("loadingOverlay").style.display = "none";
+      // 初始化昵称
+      initNickname();
       // 渲染页面
       renderProfile();
       render();
@@ -886,7 +936,7 @@
     }
   }
 
-  // ==================== 原有功能函数（已添加自动同步） ====================
+  // ==================== 原有功能函数（已添加昵称验证） ====================
   function save() {
     autoSync();
     updateTotalCount();
@@ -935,7 +985,7 @@
       queue.forEach((item,idx)=>{
         let d=document.createElement("div");d.className="song-item";
         d.innerHTML = `
-          <span>${idx+1}. ${item.song}<span class="time-text">${item.time}</span></span>
+          <span>${idx+1}. <span class="requester-name">${item.requester}</span> ${item.song}<span class="time-text">${item.time}</span></span>
         `;
         ql.appendChild(d);
       })
@@ -1051,11 +1101,19 @@
     alert("歌曲删除成功！已同步到云端，所有人刷新即可看到");
   }
 
+  // 点歌前验证昵称
   function addQueue(i) {
+    if (!viewerNickname) {
+      alert("请先输入你的昵称才能点歌！");
+      document.getElementById("viewerNickname").focus();
+      return;
+    }
+
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     const songFull = `${songLib[i].songName} - ${songLib[i].singer}`;
     queue.push({
+      requester: viewerNickname,
       song: songFull,
       time: timeStr
     });
@@ -1071,7 +1129,14 @@
     render();
   }
 
+  // 随机点歌前验证昵称
   function randomSong() {
+    if (!viewerNickname) {
+      alert("请先输入你的昵称才能点歌！");
+      document.getElementById("viewerNickname").focus();
+      return;
+    }
+
     if(songLib.length===0){
       alert("曲库为空，无法随机点歌！");
       return;
@@ -1081,12 +1146,13 @@
     currentRandomSong = `${randomSongObj.songName} - ${randomSongObj.singer}`;
     currentRandomSongName = randomSongObj.songName;
     
-    document.getElementById("randomSongResult").textContent = `已为汐咪露随机到：${currentRandomSong}`;
+    document.getElementById("randomSongResult").textContent = `已为${viewerNickname}随机到：${currentRandomSong}`;
     document.getElementById("randomModal").style.display = "flex";
     
     const now = new Date();
     const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
     queue.push({
+      requester: viewerNickname,
       song: currentRandomSong,
       time: timeStr
     });
