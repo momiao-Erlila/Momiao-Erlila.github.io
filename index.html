@@ -506,7 +506,7 @@
     let bar = document.getElementById("tabBar");
     if(bar.children.length<2){
       let btn = document.createElement("button");
-      btn.textContent = "后台"; // 核心修改：简化文字
+      btn.textContent = "后台";
       btn.onclick = ()=>showTab("admin");
       bar.appendChild(btn);
     }
@@ -790,15 +790,24 @@
     d.className = "import-result import-"+type;
   }
 
-  // ==================== B站视频自动解析 + 实时播放量 ====================
+  // ==================== B站视频自动解析 + 实时播放量（修复跨域+兼容分享链接） ====================
   async function parseBilibiliVideo(){
     let link = document.getElementById("videoLink").value.trim();
-    if(!link.includes("BV")){alert("请输入正确的B站视频链接！");return;}
-    let bv = link.match(/BV([A-Za-z0-9]+)/)[0];
+    // 自动提取BV号，忽略链接后缀参数
+    let bvMatch = link.match(/BV([A-Za-z0-9]+)/);
+    if(!bvMatch){
+      alert("未识别到有效的BV号，请检查链接格式！");
+      return;
+    }
+    let bv = bvMatch[0];
     try{
-      let res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bv}`);
+      // 跨域代理解决浏览器拦截
+      let res = await fetch(`https://api.allorigins.win/raw?url=https://api.bilibili.com/x/web-interface/view?bvid=${bv}`);
       let data = await res.json();
-      if(data.code !== 0){alert("视频解析失败！");return;}
+      if(data.code !== 0){
+        alert("视频解析失败！错误：" + data.message);
+        return;
+      }
       let info = data.data;
       // 自动填充所有信息
       document.getElementById("videoBv").value = bv;
@@ -809,10 +818,11 @@
       document.getElementById("videoViews").value = formatViewCount(info.stat.view);
       alert("视频信息解析成功！");
     }catch(e){
-      alert("解析失败，请检查链接是否正确！");
+      console.error("解析错误:", e);
+      alert("解析失败，请检查网络或链接是否有效！");
     }
   }
-  // 秒数转时分秒
+  // 秒数转 分:秒
   function formatDuration(seconds){
     let m = Math.floor(seconds/60).toString().padStart(2,'0');
     let s = (seconds%60).toString().padStart(2,'0');
@@ -831,10 +841,10 @@
     if(num >= 10000) return (num/10000).toFixed(1) + "万";
     return num + "+";
   }
-  // 获取实时播放量
+  // 获取实时播放量（跨域修复）
   async function getRealVideoViews(bv){
     try{
-      let res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bv}`);
+      let res = await fetch(`https://api.allorigins.win/raw?url=https://api.bilibili.com/x/web-interface/view?bvid=${bv}`);
       let data = await res.json();
       if(data.code === 0) return formatViewCount(data.data.stat.view);
     }catch(e){}
